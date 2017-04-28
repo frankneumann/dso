@@ -24,6 +24,9 @@
 
 #pragma once
 #include "util/NumType.h"
+// aarontang add <<
+#include "SSE2NEON.h"
+// aarontang end >>
 
 
 namespace dso

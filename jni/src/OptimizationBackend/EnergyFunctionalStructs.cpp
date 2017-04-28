@@ -27,6 +27,9 @@
 #include "FullSystem/FullSystem.h"
 #include "FullSystem/HessianBlocks.h"
 #include "FullSystem/Residuals.h"
+// aarontang add <<
+#include "SSE2NEON.h"
+// aarontang end >>
 
 
 
