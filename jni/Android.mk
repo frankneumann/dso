@@ -3,7 +3,7 @@ include $(CLEAR_VARS)
 
 ROOT := /data/projects/andorid_ndk
 
-LOCAL_CFLAGS += -std=c++11 -Wno-deprecated-declarations -DHAS_ZIPLIB=1
+LOCAL_CFLAGS += -std=c++11 -Wno-deprecated-declarations -DHAS_ZIPLIB=0
 LOCAL_CPPFLAGS += -std=c++11 -O3
 LOCAL_MODULE := DSO
 LOCAL_ARM_MODE := arm
@@ -30,14 +30,18 @@ LOCAL_SRC_FILES += \
     $(DSO_PATH)/OptimizationBackend/EnergyFunctionalStructs.cpp \
     $(DSO_PATH)/util/settings.cpp \
     $(DSO_PATH)/util/Undistort.cpp \
-    $(DSO_PATH)/util/globalCalib.cpp
+    $(DSO_PATH)/util/globalCalib.cpp \
+    $(DSO_PATH)/dso_jni.cpp \
+    $(DSO_PATH)/util/logger.cpp
 
 LOCAL_SRC_FILES += \
     $(DSO_PATH)/IOWrapper/ImageDisplay_dummy.cpp \
-    $(DSO_PATH)/IOWrapper/ImageRW_dummy.cpp 
+    $(DSO_PATH)/IOWrapper/ImageRW_dummy.cpp \
+    $(DSO_PATH)/IOWrapper/Android/AndroidOutput3DWrapper.cpp
 
 LOCAL_C_INCLUDES += \
     $(DSO_PATH) \
+    $(DSO_PATH)/util \
     $(DSO_PATH)/thirdparty/Sophus \
     $(DSO_PATH)/thirdparty/sse2neon
 
