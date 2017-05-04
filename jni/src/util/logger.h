@@ -40,6 +40,8 @@
     __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "%s | %i: %s", __FUNCTION__, __LINE__, buf); \
 } while (0)
 
+#define printf LOGD
+
 void printTrans(const Sophus::Sim3f::Transformation& trans);
 void printMatrix4f(const Sophus::Matrix4f& m);
 void printMatrix4x4(GLfloat* m);

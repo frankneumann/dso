@@ -36,8 +36,9 @@ LOCAL_SRC_FILES += \
 
 LOCAL_SRC_FILES += \
     $(DSO_PATH)/IOWrapper/ImageDisplay_dummy.cpp \
-    $(DSO_PATH)/IOWrapper/ImageRW_dummy.cpp \
-    $(DSO_PATH)/IOWrapper/Android/AndroidOutput3DWrapper.cpp
+    $(DSO_PATH)/IOWrapper/OpenCV/ImageRW_OpenCV.cpp \
+    $(DSO_PATH)/IOWrapper/Android/AndroidOutput3DWrapper.cpp \
+    $(DSO_PATH)/IOWrapper/Android/KeyFrameDisplay.cpp
 
 LOCAL_C_INCLUDES += \
     $(DSO_PATH) \
@@ -64,7 +65,7 @@ LOCAL_CFLAGS += -g
 #LOCAL_EXPORT_CXXFLAGS := $(LOCAL_CXXFLAGS) #export cpp flgs
 
 LOCAL_STATIC_LIBRARIES += boost_android_thread boost_android_filesystem boost_android_system
-#LOCAL_STATIC_LIBRARIES += opencv_android_calib3d opencv_android_highgui opencv_android_imgcodecs \
+LOCAL_STATIC_LIBRARIES += opencv_android_calib3d opencv_android_highgui opencv_android_imgcodecs \
     opencv_android_imgproc opencv_android_core opencv_android_features2d opencv_android_flann \
     libwebp libIlmImf libjasper libjpeg libpng libtiff libtbb libtegra_hal
 #LOCAL_STATIC_LIBRARIES += glm
@@ -93,80 +94,80 @@ LOCAL_SRC_FILES := $(ROOT)/Boost-for-Android/build/lib/libboost_system-gcc-mt-1_
 include $(PREBUILT_STATIC_LIBRARY)
 
 #---------------------------- OpenCV ----------------------------
-#include $(CLEAR_VARS)
-#LOCAL_MODULE := opencv_android_calib3d
-#LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/libs/armeabi-v7a/libopencv_calib3d.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+LOCAL_MODULE := opencv_android_calib3d
+LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/libs/armeabi-v7a/libopencv_calib3d.a
+include $(PREBUILT_STATIC_LIBRARY)
 
-#include $(CLEAR_VARS)
-#LOCAL_MODULE := opencv_android_highgui
-#LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/libs/armeabi-v7a/libopencv_highgui.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+LOCAL_MODULE := opencv_android_highgui
+LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/libs/armeabi-v7a/libopencv_highgui.a
+include $(PREBUILT_STATIC_LIBRARY)
 
-#include $(CLEAR_VARS)
-#LOCAL_MODULE := opencv_android_imgcodecs
-#LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/libs/armeabi-v7a/libopencv_imgcodecs.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+LOCAL_MODULE := opencv_android_imgcodecs
+LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/libs/armeabi-v7a/libopencv_imgcodecs.a
+include $(PREBUILT_STATIC_LIBRARY)
 
-#include $(CLEAR_VARS)
-#LOCAL_MODULE := opencv_android_imgproc
-#LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/libs/armeabi-v7a/libopencv_imgproc.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+LOCAL_MODULE := opencv_android_imgproc
+LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/libs/armeabi-v7a/libopencv_imgproc.a
+include $(PREBUILT_STATIC_LIBRARY)
 
-#include $(CLEAR_VARS)
-#LOCAL_MODULE := opencv_android_core
-#LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/libs/armeabi-v7a/libopencv_core.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+LOCAL_MODULE := opencv_android_core
+LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/libs/armeabi-v7a/libopencv_core.a
+include $(PREBUILT_STATIC_LIBRARY)
 
-#include $(CLEAR_VARS)
-#LOCAL_MODULE := opencv_android_features2d
-#LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/libs/armeabi-v7a/libopencv_features2d.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+LOCAL_MODULE := opencv_android_features2d
+LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/libs/armeabi-v7a/libopencv_features2d.a
+include $(PREBUILT_STATIC_LIBRARY)
 
-#include $(CLEAR_VARS)
-#LOCAL_MODULE := opencv_android_flann
-#LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/libs/armeabi-v7a/libopencv_flann.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+LOCAL_MODULE := opencv_android_flann
+LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/libs/armeabi-v7a/libopencv_flann.a
+include $(PREBUILT_STATIC_LIBRARY)
 
-#include $(CLEAR_VARS)
-#LOCAL_MODULE := libwebp
-#LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/3rdparty/libs/armeabi-v7a/liblibwebp.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+LOCAL_MODULE := libwebp
+LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/3rdparty/libs/armeabi-v7a/liblibwebp.a
+include $(PREBUILT_STATIC_LIBRARY)
 
-#include $(CLEAR_VARS)
-#LOCAL_MODULE := libIlmImf
-#LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/3rdparty/libs/armeabi-v7a/libIlmImf.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+LOCAL_MODULE := libIlmImf
+LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/3rdparty/libs/armeabi-v7a/libIlmImf.a
+include $(PREBUILT_STATIC_LIBRARY)
 
-#include $(CLEAR_VARS)
-#LOCAL_MODULE := libjasper
-#LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/3rdparty/libs/armeabi-v7a/liblibjasper.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+LOCAL_MODULE := libjasper
+LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/3rdparty/libs/armeabi-v7a/liblibjasper.a
+include $(PREBUILT_STATIC_LIBRARY)
 
-#include $(CLEAR_VARS)
-#LOCAL_MODULE := libjpeg
-#LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/3rdparty/libs/armeabi-v7a/liblibjpeg.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+LOCAL_MODULE := libjpeg
+LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/3rdparty/libs/armeabi-v7a/liblibjpeg.a
+include $(PREBUILT_STATIC_LIBRARY)
 
-#include $(CLEAR_VARS)
-#LOCAL_MODULE := libpng
-#LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/3rdparty/libs/armeabi-v7a/liblibpng.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+LOCAL_MODULE := libpng
+LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/3rdparty/libs/armeabi-v7a/liblibpng.a
+include $(PREBUILT_STATIC_LIBRARY)
 
-#include $(CLEAR_VARS)
-#LOCAL_MODULE := libtiff
-#LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/3rdparty/libs/armeabi-v7a/liblibtiff.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+LOCAL_MODULE := libtiff
+LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/3rdparty/libs/armeabi-v7a/liblibtiff.a
+include $(PREBUILT_STATIC_LIBRARY)
 
-#include $(CLEAR_VARS)
-#LOCAL_MODULE := libtbb
-#LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/3rdparty/libs/armeabi-v7a/libtbb.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+LOCAL_MODULE := libtbb
+LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/3rdparty/libs/armeabi-v7a/libtbb.a
+include $(PREBUILT_STATIC_LIBRARY)
 
-#include $(CLEAR_VARS)
-#LOCAL_MODULE := libtegra_hal
-#LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/3rdparty/libs/armeabi-v7a/libtegra_hal.a
-#include $(PREBUILT_STATIC_LIBRARY)
+include $(CLEAR_VARS)
+LOCAL_MODULE := libtegra_hal
+LOCAL_SRC_FILES := $(ROOT)/OpenCV-android-sdk/sdk/native/3rdparty/libs/armeabi-v7a/libtegra_hal.a
+include $(PREBUILT_STATIC_LIBRARY)
 
 #---------------------------- g2o ----------------------------
 #include $(CLEAR_VARS)

@@ -42,103 +42,149 @@ float playbackSpeed=0;	// 0 for linearize (play as fast as possible, while seque
 bool preload=false;
 bool useSampleOutput=false;
 
-
-int mode=0;
-
 bool firstRosSpin=false;
 
 using namespace dso;
 
-void run(ImageFolderReader* reader, FullSystem* fullSystem) {
-    std::vector<int> idsToPlay;
-    std::vector<double> timesToPlayAt;
-    for(int i = 0; i< reader->getNumImages(); ++i) {
-        idsToPlay.push_back(i);
-        if(timesToPlayAt.size() == 0) {
-            timesToPlayAt.push_back((double)0);
-        } else {
-            double tsThis = reader->getTimestamp(idsToPlay[idsToPlay.size()-1]);
-            double tsPrev = reader->getTimestamp(idsToPlay[idsToPlay.size()-2]);
-            timesToPlayAt.push_back(timesToPlayAt.back() +  fabs(tsThis-tsPrev)/playbackSpeed);
+class DSOSlamSystem {
+public:
+    DSOSlamSystem() {
+        reader_ = new ImageFolderReader(source, calib, gammaCalib, vignette);
+    	reader_->setGlobalCalibration();
+
+        fullSystem_ = new FullSystem();
+    	fullSystem_->setGammaFunction(reader_->getPhotometricGamma());
+    	fullSystem_->linearizeOperation = (playbackSpeed==0);
+
+    	outputWrapper_ = new IOWrap::AndroidOutput3DWrapper(wG[0], hG[0], false);
+    	fullSystem_->outputWrapper.push_back(outputWrapper_);
+    }
+
+    ~DSOSlamSystem() {
+        if (reader_) {
+            delete reader_;
+            reader_ = NULL;
+        }
+        if (fullSystem_) {
+            delete fullSystem_;
+            fullSystem_ = NULL;
+        }
+        if (outputWrapper_) {
+            delete outputWrapper_;
+            outputWrapper_ = NULL;
         }
     }
 
+    void start() {
+        boost::function0< void > f = boost::bind(&DSOSlamSystem::loop, this);
+        boost::thread dsoThread(f);
+    }
 
-    std::vector<ImageAndExposure*> preloadedImages;
-    if(preload) {
-        LOGD("LOADING ALL IMAGES!\n");
+    void stop() {
+    }
+    
+private:
+    void loop() {
+        LOGD("========= loop start ==========\n");
+        ImageFolderReader* reader = reader_;
+        FullSystem* fullSystem = fullSystem_;
+        
+        std::vector<int> idsToPlay;
+        std::vector<double> timesToPlayAt;
+        for(int i = 0; i< reader->getNumImages(); ++i) {
+            idsToPlay.push_back(i);
+            if(timesToPlayAt.size() == 0) {
+                timesToPlayAt.push_back((double)0);
+            } else {
+                double tsThis = reader->getTimestamp(idsToPlay[idsToPlay.size()-1]);
+                double tsPrev = reader->getTimestamp(idsToPlay[idsToPlay.size()-2]);
+                timesToPlayAt.push_back(timesToPlayAt.back() +  fabs(tsThis-tsPrev)/playbackSpeed);
+            }
+        }
+
+
+        std::vector<ImageAndExposure*> preloadedImages;
+        if(preload) {
+            LOGD("LOADING ALL IMAGES!\n");
+            for(int ii=0;ii<(int)idsToPlay.size(); ii++) {
+                int i = idsToPlay[ii];
+                preloadedImages.push_back(reader->getImage(i));
+            }
+        }
+
+        struct timeval tv_start;
+        gettimeofday(&tv_start, NULL);
+        clock_t started = clock();
+        double sInitializerOffset=0;
+
         for(int ii=0;ii<(int)idsToPlay.size(); ii++) {
+            if(!fullSystem->initialized) {  // if not initialized: reset start time.
+                gettimeofday(&tv_start, NULL);
+                started = clock();
+                sInitializerOffset = timesToPlayAt[ii];
+            }
+
             int i = idsToPlay[ii];
-            preloadedImages.push_back(reader->getImage(i));
+            ImageAndExposure* img;
+            if(preload)
+                img = preloadedImages[ii];
+            else
+                img = reader->getImage(i);
+
+            bool skipFrame=false;
+            if(playbackSpeed!=0) {
+                struct timeval tv_now; gettimeofday(&tv_now, NULL);
+                double sSinceStart = sInitializerOffset + ((tv_now.tv_sec-tv_start.tv_sec) + (tv_now.tv_usec-tv_start.tv_usec)/(1000.0f*1000.0f));
+
+                if(sSinceStart < timesToPlayAt[ii])
+                    usleep((int)((timesToPlayAt[ii]-sSinceStart)*1000*1000));
+                else if(sSinceStart > timesToPlayAt[ii]+0.5+0.1*(ii%2)) {
+                    LOGD("SKIPFRAME %d (play at %f, now it is %f)!\n", ii, timesToPlayAt[ii], sSinceStart);
+                    skipFrame=true;
+                }
+            }
+
+            if(!skipFrame) fullSystem->addActiveFrame(img, i);
+            delete img;
+
+            if(fullSystem->initFailed || setting_fullResetRequested) {
+                if(ii < 250 || setting_fullResetRequested) {
+                    LOGD("RESETTING!\n");
+
+                    std::vector<IOWrap::Output3DWrapper*> wraps = fullSystem->outputWrapper;
+                    delete fullSystem;
+
+                    for(IOWrap::Output3DWrapper* ow : wraps) ow->reset();
+
+                    fullSystem = new FullSystem();
+                    fullSystem->setGammaFunction(reader->getPhotometricGamma());
+                    fullSystem->linearizeOperation = (playbackSpeed==0);
+
+
+                    fullSystem->outputWrapper = wraps;
+
+                    setting_fullResetRequested=false;
+                }
+            }
+
+            if(fullSystem->isLost) {
+                LOGD("LOST!!\n");
+                break;
+            }
+
         }
+        fullSystem->blockUntilMappingIsFinished();
+        clock_t ended = clock();
+        struct timeval tv_end;
+        gettimeofday(&tv_end, NULL);
     }
 
-    struct timeval tv_start;
-    gettimeofday(&tv_start, NULL);
-    clock_t started = clock();
-    double sInitializerOffset=0;
+    ImageFolderReader* reader_;
+    FullSystem* fullSystem_;
+    IOWrap::AndroidOutput3DWrapper* outputWrapper_;
+};
 
-    for(int ii=0;ii<(int)idsToPlay.size(); ii++) {
-        if(!fullSystem->initialized) {  // if not initialized: reset start time.
-            gettimeofday(&tv_start, NULL);
-            started = clock();
-            sInitializerOffset = timesToPlayAt[ii];
-        }
-
-        int i = idsToPlay[ii];
-        ImageAndExposure* img;
-        if(preload)
-            img = preloadedImages[ii];
-        else
-            img = reader->getImage(i);
-
-        bool skipFrame=false;
-        if(playbackSpeed!=0) {
-            struct timeval tv_now; gettimeofday(&tv_now, NULL);
-            double sSinceStart = sInitializerOffset + ((tv_now.tv_sec-tv_start.tv_sec) + (tv_now.tv_usec-tv_start.tv_usec)/(1000.0f*1000.0f));
-
-            if(sSinceStart < timesToPlayAt[ii])
-                usleep((int)((timesToPlayAt[ii]-sSinceStart)*1000*1000));
-            else if(sSinceStart > timesToPlayAt[ii]+0.5+0.1*(ii%2)) {
-                LOGD("SKIPFRAME %d (play at %f, now it is %f)!\n", ii, timesToPlayAt[ii], sSinceStart);
-                skipFrame=true;
-            }
-        }
-
-        if(!skipFrame) fullSystem->addActiveFrame(img, i);
-        delete img;
-
-        if(fullSystem->initFailed || setting_fullResetRequested) {
-            if(ii < 250 || setting_fullResetRequested) {
-                LOGD("RESETTING!\n");
-
-                std::vector<IOWrap::Output3DWrapper*> wraps = fullSystem->outputWrapper;
-                delete fullSystem;
-
-                for(IOWrap::Output3DWrapper* ow : wraps) ow->reset();
-
-                fullSystem = new FullSystem();
-                fullSystem->setGammaFunction(reader->getPhotometricGamma());
-                fullSystem->linearizeOperation = (playbackSpeed==0);
-
-
-                fullSystem->outputWrapper = wraps;
-
-                setting_fullResetRequested=false;
-            }
-        }
-
-        if(fullSystem->isLost) {
-            LOGD("LOST!!\n");
-            break;
-        }
-
-    }
-    fullSystem->blockUntilMappingIsFinished();
-    clock_t ended = clock();
-    struct timeval tv_end;
-    gettimeofday(&tv_end, NULL);
-}
+static DSOSlamSystem* gSlamSystem = NULL;
 
 extern "C"{
 JavaVM* gJvm = NULL;
@@ -153,30 +199,20 @@ Java_com_tc_tar_TARNativeInterface_dsoInit(JNIEnv* env, jobject thiz, jstring ca
     LOGD("calibFile: %s\n", calibFile);
     calib = calibFile;
 	env->ReleaseStringUTFChars(calibPath, calibFile);
-	
-    ImageFolderReader* reader = new ImageFolderReader(source, calib, gammaCalib, vignette);
-	reader->setGlobalCalibration();   
 
-    FullSystem* fullSystem = new FullSystem();
-	fullSystem->setGammaFunction(reader->getPhotometricGamma());
-	fullSystem->linearizeOperation = (playbackSpeed==0);
-
-	IOWrap::AndroidOutput3DWrapper* wrapper = new IOWrap::AndroidOutput3DWrapper(wG[0], hG[0], false);
-	fullSystem->outputWrapper.push_back(wrapper);
-
-	boost::thread dsoThread(run, reader, fullSystem);
-
-	
+    gSlamSystem = new DSOSlamSystem();
 }
 
 JNIEXPORT void JNICALL
 Java_com_tc_tar_TARNativeInterface_dsoRelease(JNIEnv* env, jobject thiz) {
 	LOGD("dsoRelease\n");
+	gSlamSystem->stop();
 }
 
 JNIEXPORT void JNICALL
 Java_com_tc_tar_TARNativeInterface_dsoStart(JNIEnv* env, jobject thiz) {
 	LOGD("dsoStart\n");
+	gSlamSystem->start();
 }
 
 JNIEXPORT jfloatArray JNICALL

@@ -4,6 +4,8 @@
 #include "boost/thread.hpp"
 #include "util/MinimalImage.h"
 #include "IOWrapper/Output3DWrapper.h"
+#include "KeyFrameDisplay.h"
+#include "util/NumType.h"
 
 
 namespace dso
@@ -37,11 +39,17 @@ public:
     virtual void join();
 
     virtual void reset();
+    
+    SE3 currentCamPose();
+    
 
 private:
     boost::thread runThread;
     bool running_;
     int w_, h_;
+
+    boost::mutex model3DMutex_;
+	KeyFrameDisplay* currentCam_;
 };
 
 }

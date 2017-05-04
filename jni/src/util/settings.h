@@ -28,6 +28,7 @@
 #include <string.h>
 #include <string>
 #include <cmath>
+#include "logger.h"
 
 
 namespace dso
