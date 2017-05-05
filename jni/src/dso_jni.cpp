@@ -84,14 +84,6 @@ public:
         }
     }
 
-    void start() {
-        boost::function0< void > f = boost::bind(&DSOSlamSystem::loop, this);
-        boost::thread dsoThread(f);
-    }
-
-    void stop() {
-    }
-
     int onFrame(int width, int height, unsigned char* data) {
         // Ref. https://github.com/JakobEngel/dso_ros/blob/master/src/main.cpp vidCb function
         if(setting_fullResetRequested) {
@@ -115,101 +107,6 @@ public:
     }
     
 private:
-    void loop() {
-        LOGD("========= loop start ==========\n");
-        ImageFolderReader* reader = reader_;
-        FullSystem* fullSystem = fullSystem_;
-        
-        std::vector<int> idsToPlay;
-        std::vector<double> timesToPlayAt;
-        for(int i = 0; i< reader->getNumImages(); ++i) {
-            idsToPlay.push_back(i);
-            if(timesToPlayAt.size() == 0) {
-                timesToPlayAt.push_back((double)0);
-            } else {
-                double tsThis = reader->getTimestamp(idsToPlay[idsToPlay.size()-1]);
-                double tsPrev = reader->getTimestamp(idsToPlay[idsToPlay.size()-2]);
-                timesToPlayAt.push_back(timesToPlayAt.back() +  fabs(tsThis-tsPrev)/playbackSpeed);
-            }
-        }
-
-
-        std::vector<ImageAndExposure*> preloadedImages;
-        if(preload) {
-            LOGD("LOADING ALL IMAGES!\n");
-            for(int ii=0;ii<(int)idsToPlay.size(); ii++) {
-                int i = idsToPlay[ii];
-                preloadedImages.push_back(reader->getImage(i));
-            }
-        }
-
-        struct timeval tv_start;
-        gettimeofday(&tv_start, NULL);
-        clock_t started = clock();
-        double sInitializerOffset=0;
-
-        for(int ii=0;ii<(int)idsToPlay.size(); ii++) {
-            if(!fullSystem->initialized) {  // if not initialized: reset start time.
-                gettimeofday(&tv_start, NULL);
-                started = clock();
-                sInitializerOffset = timesToPlayAt[ii];
-            }
-
-            int i = idsToPlay[ii];
-            ImageAndExposure* img;
-            if(preload)
-                img = preloadedImages[ii];
-            else
-                img = reader->getImage(i);
-
-            bool skipFrame=false;
-            if(playbackSpeed!=0) {
-                struct timeval tv_now; gettimeofday(&tv_now, NULL);
-                double sSinceStart = sInitializerOffset + ((tv_now.tv_sec-tv_start.tv_sec) + (tv_now.tv_usec-tv_start.tv_usec)/(1000.0f*1000.0f));
-
-                if(sSinceStart < timesToPlayAt[ii])
-                    usleep((int)((timesToPlayAt[ii]-sSinceStart)*1000*1000));
-                else if(sSinceStart > timesToPlayAt[ii]+0.5+0.1*(ii%2)) {
-                    LOGD("SKIPFRAME %d (play at %f, now it is %f)!\n", ii, timesToPlayAt[ii], sSinceStart);
-                    skipFrame=true;
-                }
-            }
-
-            if(!skipFrame) fullSystem->addActiveFrame(img, i);
-            delete img;
-
-            if(fullSystem->initFailed || setting_fullResetRequested) {
-                if(ii < 250 || setting_fullResetRequested) {
-                    LOGD("RESETTING!\n");
-
-                    std::vector<IOWrap::Output3DWrapper*> wraps = fullSystem->outputWrapper;
-                    delete fullSystem;
-
-                    for(IOWrap::Output3DWrapper* ow : wraps) ow->reset();
-
-                    fullSystem = new FullSystem();
-                    fullSystem->setGammaFunction(reader->getPhotometricGamma());
-                    fullSystem->linearizeOperation = (playbackSpeed==0);
-
-
-                    fullSystem->outputWrapper = wraps;
-
-                    setting_fullResetRequested=false;
-                }
-            }
-
-            if(fullSystem->isLost) {
-                LOGD("LOST!!\n");
-                break;
-            }
-
-        }
-        fullSystem->blockUntilMappingIsFinished();
-        clock_t ended = clock();
-        struct timeval tv_end;
-        gettimeofday(&tv_end, NULL);
-    }
-
     ImageFolderReader* reader_;
     Undistort* undistort_;;
     FullSystem* fullSystem_;
@@ -239,13 +136,6 @@ Java_com_tc_tar_TARNativeInterface_dsoInit(JNIEnv* env, jobject thiz, jstring ca
 JNIEXPORT void JNICALL
 Java_com_tc_tar_TARNativeInterface_dsoRelease(JNIEnv* env, jobject thiz) {
 	LOGD("dsoRelease\n");
-	gSlamSystem->stop();
-}
-
-JNIEXPORT void JNICALL
-Java_com_tc_tar_TARNativeInterface_dsoStart(JNIEnv* env, jobject thiz) {
-	LOGD("dsoStart\n");
-	gSlamSystem->start();
 }
 
 JNIEXPORT int JNICALL

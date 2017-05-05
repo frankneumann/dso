@@ -36,7 +36,7 @@ LOCAL_SRC_FILES += \
 
 LOCAL_SRC_FILES += \
     $(DSO_PATH)/IOWrapper/ImageDisplay_dummy.cpp \
-    $(DSO_PATH)/IOWrapper/OpenCV/ImageRW_OpenCV.cpp \
+    $(DSO_PATH)/IOWrapper/ImageRW_dummy.cpp \
     $(DSO_PATH)/IOWrapper/Android/AndroidOutput3DWrapper.cpp \
     $(DSO_PATH)/IOWrapper/Android/KeyFrameDisplay.cpp
 
@@ -65,7 +65,7 @@ LOCAL_CFLAGS += -g
 #LOCAL_EXPORT_CXXFLAGS := $(LOCAL_CXXFLAGS) #export cpp flgs
 
 LOCAL_STATIC_LIBRARIES += boost_android_thread boost_android_filesystem boost_android_system
-LOCAL_STATIC_LIBRARIES += opencv_android_calib3d opencv_android_highgui opencv_android_imgcodecs \
+#LOCAL_STATIC_LIBRARIES += opencv_android_calib3d opencv_android_highgui opencv_android_imgcodecs \
     opencv_android_imgproc opencv_android_core opencv_android_features2d opencv_android_flann \
     libwebp libIlmImf libjasper libjpeg libpng libtiff libtbb libtegra_hal
 #LOCAL_STATIC_LIBRARIES += glm
