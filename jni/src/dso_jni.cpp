@@ -105,6 +105,42 @@ public:
         frameId_++;
         delete undistImg;
     }
+
+    float fx() {
+        return fullSystem_->getCalibHessian().fxl();
+    }
+
+    float fy() {
+        return fullSystem_->getCalibHessian().fyl();
+    }
+
+    float cx() {
+        return fullSystem_->getCalibHessian().cxl();
+    }
+
+    float cy() {
+        return fullSystem_->getCalibHessian().cyl();
+    }
+
+    int width() {
+        return wG[0];
+    }
+
+    int height() {
+        return hG[0];
+    }
+
+    SE3 currentCameraPose() {
+        return outputWrapper_->currentCamPose();
+    }
+
+    int getKeyframeCount() {
+        return outputWrapper_->getKeyframeCount();
+    }
+
+    MinimalImageB3* cloneKeyframeImage() {
+        return outputWrapper_->cloneKeyframeImage();
+    }
     
 private:
     ImageFolderReader* reader_;
@@ -157,24 +193,12 @@ Java_com_tc_tar_TARNativeInterface_dsoGetIntrinsics(JNIEnv* env, jobject thiz) {
     }
     
     jfloat array1[4];
-    // TODO: set value
+    array1[0] = gSlamSystem->cx();
+    array1[1] = gSlamSystem->cy();
+    array1[2] = gSlamSystem->fx();
+    array1[3] = gSlamSystem->fy();
     
     env->SetFloatArrayRegion(result, 0, 4, array1);
-    return result;
-}
-
-JNIEXPORT jintArray JNICALL
-Java_com_tc_tar_TARNativeInterface_dsoGetResolution(JNIEnv* env, jobject thiz) {
-    jintArray result;
-    result = env->NewIntArray(2);
-    if (result == NULL) {
-        return NULL; /* out of memory error thrown */
-    }
-    
-    jint array1[2];
-    // TODO: set value
-
-    env->SetIntArrayRegion(result, 0, 2, array1);
     return result;
 }
 
@@ -188,8 +212,9 @@ Java_com_tc_tar_TARNativeInterface_dsoGetCurrentPose(JNIEnv* env, jobject thiz) 
     }
 
     jfloat mat4[length];
-    // TODO: set value
-
+    Sophus::Matrix4f m = gSlamSystem->currentCameraPose().matrix().cast<float>();
+    float* pose = m.data();
+    memcpy(mat4, pose, sizeof(jfloat) * length);
 
     env->SetFloatArrayRegion(result, 0, length, mat4);
     return result;
@@ -219,13 +244,29 @@ Java_com_tc_tar_TARNativeInterface_dsoGetAllKeyFrames(JNIEnv* env, jobject thiz)
 
 JNIEXPORT jint JNICALL
 Java_com_tc_tar_TARNativeInterface_dsoGetKeyFrameCount(JNIEnv* env, jobject thiz) {
-    // TODO: implementation
-    return 0;
+    return gSlamSystem->getKeyframeCount();
 }
 
 JNIEXPORT jbyteArray JNICALL
 Java_com_tc_tar_TARNativeInterface_dsoGetCurrentImage(JNIEnv* env, jobject thiz, jint format) {
-    // TODO: implemetation
-    return NULL;
+    MinimalImageB3* minImg = gSlamSystem->cloneKeyframeImage();
+    int width = gSlamSystem->width();
+    int height = gSlamSystem->height();
+    int imgSize = width * height * 4;
+    unsigned char* imgData = new unsigned char[imgSize];
+
+    for (int i = 0; i < width * height; ++i) {
+        imgData[i * 4] = minImg->data[i * 3][0];
+        imgData[i * 4 + 1] = minImg->data[i * 3][1];
+        imgData[i * 4 + 2] = minImg->data[i * 3][2];
+        imgData[i * 4 + 3] = (unsigned char)0xff;
+    }
+    
+    jbyteArray byteArray = env->NewByteArray(imgSize);
+    env->SetByteArrayRegion(byteArray, 0, imgSize, (jbyte*)imgData);
+
+    delete minImg;
+    delete imgData;
+    return byteArray;
 }
 }

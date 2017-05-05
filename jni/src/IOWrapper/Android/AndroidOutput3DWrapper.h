@@ -41,6 +41,9 @@ public:
     virtual void reset();
     
     SE3 currentCamPose();
+    int getKeyframeCount();
+    MinimalImageB3* cloneVideoImage();
+    MinimalImageB3* cloneKeyframeImage();
     
 
 private:

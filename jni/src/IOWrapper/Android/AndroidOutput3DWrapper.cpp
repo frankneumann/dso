@@ -62,6 +62,12 @@ void AndroidOutput3DWrapper::publishCamPose(FrameShell* frame, CalibHessian* HCa
 {
     boost::unique_lock<boost::mutex> lk(model3DMutex_);
     currentCam_->setFromF(frame, HCalib);
+
+    float fx = HCalib->fxl();
+	float fy = HCalib->fyl();
+	float cx = HCalib->cxl();
+	float cy = HCalib->cyl();
+	LOGD("fx=%f, fy=%f, cx=%f, cy=%f\n", fx, fy, cx, cy);
     
     std::ostringstream out;
     out << currentCam_->camToWorld.matrix();
@@ -113,6 +119,24 @@ SE3 AndroidOutput3DWrapper::currentCamPose()
 {
     boost::unique_lock<boost::mutex> lk(model3DMutex_);
     return currentCam_->camToWorld;
+}
+
+int AndroidOutput3DWrapper::getKeyframeCount()
+{
+    boost::unique_lock<boost::mutex> lk(model3DMutex_);
+    return keyframes_.size();
+}
+
+MinimalImageB3* AndroidOutput3DWrapper::cloneVideoImage()
+{
+    boost::unique_lock<boost::mutex> lk(openImagesMutex_);
+    return internalVideoImg_->getClone();
+}
+
+MinimalImageB3* AndroidOutput3DWrapper::cloneKeyframeImage()
+{
+    boost::unique_lock<boost::mutex> lk(openImagesMutex_);
+    return internalKFImg_->getClone();
 }
 
 }
