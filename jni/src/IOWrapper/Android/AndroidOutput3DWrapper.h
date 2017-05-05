@@ -48,8 +48,17 @@ private:
     bool running_;
     int w_, h_;
 
+    // 3D model rendering
     boost::mutex model3DMutex_;
 	KeyFrameDisplay* currentCam_;
+	std::vector<KeyFrameDisplay*> keyframes_;
+	std::map<int, KeyFrameDisplay*> keyframesByKFID_;
+
+	// images rendering
+	boost::mutex openImagesMutex_;
+	MinimalImageB3* internalVideoImg_;
+	MinimalImageB3* internalKFImg_;
+	
 };
 
 }

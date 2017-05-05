@@ -21,6 +21,7 @@
 #include "FullSystem/FullSystem.h"
 #include "OptimizationBackend/MatrixAccumulators.h"
 #include "FullSystem/PixelSelector2.h"
+#include "util/MinimalImage.h"
 
 
 
@@ -52,12 +53,16 @@ public:
         reader_ = new ImageFolderReader(source, calib, gammaCalib, vignette);
     	reader_->setGlobalCalibration();
 
+    	undistort_ = Undistort::getUndistorterForFile(calib, gammaCalib, vignette);
+
         fullSystem_ = new FullSystem();
     	fullSystem_->setGammaFunction(reader_->getPhotometricGamma());
     	fullSystem_->linearizeOperation = (playbackSpeed==0);
 
     	outputWrapper_ = new IOWrap::AndroidOutput3DWrapper(wG[0], hG[0], false);
     	fullSystem_->outputWrapper.push_back(outputWrapper_);
+
+    	frameId_ = 0;
     }
 
     ~DSOSlamSystem() {
@@ -73,6 +78,10 @@ public:
             delete outputWrapper_;
             outputWrapper_ = NULL;
         }
+        if (undistort_) {
+            delete undistort_;
+            undistort_ = NULL;
+        }
     }
 
     void start() {
@@ -81,6 +90,28 @@ public:
     }
 
     void stop() {
+    }
+
+    int onFrame(int width, int height, unsigned char* data) {
+        // Ref. https://github.com/JakobEngel/dso_ros/blob/master/src/main.cpp vidCb function
+        if(setting_fullResetRequested) {
+    		std::vector<IOWrap::Output3DWrapper*> wraps = fullSystem_->outputWrapper;
+    		delete fullSystem_;
+    		for(IOWrap::Output3DWrapper* ow : wraps) ow->reset();
+    		fullSystem_ = new FullSystem();
+    		fullSystem_->linearizeOperation=false;
+    		fullSystem_->outputWrapper = wraps;
+    	    if(undistort_->photometricUndist != 0)
+    	    	fullSystem_->setGammaFunction(undistort_->photometricUndist->getG());
+    		setting_fullResetRequested=false;
+    	}
+    
+        MinimalImageB minImg(width, height, data);
+        ImageAndExposure* undistImg = undistort_->undistort<unsigned char>(
+				&minImg, 1.0f, 0.0);
+	    fullSystem_->addActiveFrame(undistImg, frameId_);
+        frameId_++;
+        delete undistImg;
     }
     
 private:
@@ -180,8 +211,10 @@ private:
     }
 
     ImageFolderReader* reader_;
+    Undistort* undistort_;;
     FullSystem* fullSystem_;
     IOWrap::AndroidOutput3DWrapper* outputWrapper_;
+    int frameId_;
 };
 
 static DSOSlamSystem* gSlamSystem = NULL;
@@ -213,6 +246,16 @@ JNIEXPORT void JNICALL
 Java_com_tc_tar_TARNativeInterface_dsoStart(JNIEnv* env, jobject thiz) {
 	LOGD("dsoStart\n");
 	gSlamSystem->start();
+}
+
+JNIEXPORT int JNICALL
+Java_com_tc_tar_TARNativeInterface_dsoOnFrame(JNIEnv* env, jobject thiz, jint width, jint height, jbyteArray array, jint format) {
+	LOGD("dsoOnFrame\n");
+	unsigned char* yuv = (unsigned char*)env->GetByteArrayElements(array, 0);
+	gSlamSystem->onFrame(width, height, yuv);
+	env->ReleaseByteArrayElements(array, (jbyte*)yuv, 0);
+	
+	return 0;
 }
 
 JNIEXPORT jfloatArray JNICALL
