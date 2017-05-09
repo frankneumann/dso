@@ -67,11 +67,12 @@ void AndroidOutput3DWrapper::publishCamPose(FrameShell* frame, CalibHessian* HCa
 	float fy = HCalib->fyl();
 	float cx = HCalib->cxl();
 	float cy = HCalib->cyl();
-	LOGD("fx=%f, fy=%f, cx=%f, cy=%f\n", fx, fy, cx, cy);
-    
+
+#if 0
     std::ostringstream out;
-    out << currentCam_->camToWorld.matrix();
+    out << frame->camToWorld.matrix();
     LOGD("\ncamera pose:\n%s\n", out.str().c_str());
+#endif
 }
 
 void AndroidOutput3DWrapper::pushLiveFrame(FrameHessian* image)

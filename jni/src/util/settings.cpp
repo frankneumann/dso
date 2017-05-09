@@ -208,7 +208,7 @@ bool setting_render_plotTrackingFull = false;
 bool setting_render_display3D = true;
 bool setting_render_displayResidual = true;
 bool setting_render_displayVideo = true;
-bool setting_render_displayDepth = true;
+bool setting_render_displayDepth = false;   // aarontang: true -> false
 
 bool setting_fullResetRequested = false;
 

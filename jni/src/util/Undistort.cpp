@@ -950,6 +950,13 @@ void Undistort::readFromFile(const char* configFileName, int nPars, std::string 
 	printf("\nRectified Kamera Matrix:\n");
 	std::cout << K << "\n\n";
 
+// aarontang add <<
+#if 0
+	std::ostringstream out;
+    out << K;
+    LOGD("\n%s\n\n", out.str().c_str());
+#endif
+// aarontang end >>
 }
 
 

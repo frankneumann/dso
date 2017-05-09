@@ -84,7 +84,7 @@ public:
         }
     }
 
-    int onFrame(int width, int height, unsigned char* data) {
+    int onFrameByData(int width, int height, unsigned char* data) {
         // Ref. https://github.com/JakobEngel/dso_ros/blob/master/src/main.cpp vidCb function
         if(setting_fullResetRequested) {
     		std::vector<IOWrap::Output3DWrapper*> wraps = fullSystem_->outputWrapper;
@@ -100,9 +100,19 @@ public:
     
         MinimalImageB minImg(width, height, data);
         ImageAndExposure* undistImg = undistort_->undistort<unsigned char>(
-				&minImg, 1.0f, 0.0);
+				&minImg, 1.0f, 1.0f);
 	    fullSystem_->addActiveFrame(undistImg, frameId_);
         frameId_++;
+        delete undistImg;
+    }
+
+    int onFrameByPath(std::string path) {
+        MinimalImageB* minImg = IOWrap::readImageBW_8U(path);
+        ImageAndExposure* undistImg = undistort_->undistort<unsigned char>(
+				minImg, 1.0f, 1.0f);
+        fullSystem_->addActiveFrame(undistImg, frameId_);
+        frameId_++;
+        delete minImg;
         delete undistImg;
     }
 
@@ -160,7 +170,7 @@ Java_com_tc_tar_TARNativeInterface_dsoInit(JNIEnv* env, jobject thiz, jstring ca
 	LOGD("dsoInit\n");
     //init jni
 	env->GetJavaVM(&gJvm);
-
+	
     const char *calibFile = env->GetStringUTFChars(calibPath, 0);
     LOGD("calibFile: %s\n", calibFile);
     calib = calibFile;
@@ -175,12 +185,23 @@ Java_com_tc_tar_TARNativeInterface_dsoRelease(JNIEnv* env, jobject thiz) {
 }
 
 JNIEXPORT int JNICALL
-Java_com_tc_tar_TARNativeInterface_dsoOnFrame(JNIEnv* env, jobject thiz, jint width, jint height, jbyteArray array, jint format) {
-	LOGD("dsoOnFrame\n");
+Java_com_tc_tar_TARNativeInterface_dsoOnFrameByData(JNIEnv* env, jobject thiz, jint width, jint height, jbyteArray array, jint format) {
+	LOGD("dsoOnFrameByData\n");
 	unsigned char* yuv = (unsigned char*)env->GetByteArrayElements(array, 0);
-	gSlamSystem->onFrame(width, height, yuv);
+	gSlamSystem->onFrameByData(width, height, yuv);
 	env->ReleaseByteArrayElements(array, (jbyte*)yuv, 0);
-	
+
+	return 0;
+}
+
+JNIEXPORT int JNICALL
+Java_com_tc_tar_TARNativeInterface_dsoOnFrameByPath(JNIEnv* env, jobject thiz, jstring path) {
+	LOGD("dsoOnFrameByPath\n");
+	const char *imgFile = env->GetStringUTFChars(path, 0);
+    LOGD("imgFile: %s\n", imgFile);
+    gSlamSystem->onFrameByPath(imgFile);
+	env->ReleaseStringUTFChars(path, imgFile);
+
 	return 0;
 }
 

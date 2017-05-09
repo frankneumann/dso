@@ -56,6 +56,9 @@
 
 #include <cmath>
 
+#include "logger.h"
+#define printf LOGD
+
 namespace dso
 {
 int FrameHessian::instanceCounter=0;
@@ -359,8 +362,11 @@ Vec4 FullSystem::trackNewCoarse(FrameHessian* fh)
 	// I'll keep track of the so-far best achieved residual for each level in achievedRes.
 	// If on a coarse level, tracking is WORSE than achievedRes, we will not continue to save time.
 
-
-	Vec5 achievedRes = Vec5::Constant(NAN);
+#ifdef ANDROID  // aarontang add
+    Vec5 achievedRes = Vec5::Constant(999999.99);   // aarontang change: NAN -> 999999.99: DO NOT compare NAN
+#else
+    Vec5 achievedRes = Vec5::Constant(NAN);
+#endif
 	bool haveOneGood = false;
 	int tryIterations=0;
 	for(unsigned int i=0;i<lastF_2_fh_tries.size();i++)
@@ -1142,9 +1148,10 @@ void FullSystem::makeKeyFrame( FrameHessian* fh)
 		coarseTracker_forNewKF->setCoarseTrackingRef(frameHessians);
 
 
-
-        coarseTracker_forNewKF->debugPlotIDepthMap(&minIdJetVisTracker, &maxIdJetVisTracker, outputWrapper);
-        coarseTracker_forNewKF->debugPlotIDepthMapFloat(outputWrapper);
+        if (setting_render_displayDepth) {  // aarontang add
+            coarseTracker_forNewKF->debugPlotIDepthMap(&minIdJetVisTracker, &maxIdJetVisTracker, outputWrapper);
+            coarseTracker_forNewKF->debugPlotIDepthMapFloat(outputWrapper);
+        }
 	}
 
 
