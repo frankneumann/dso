@@ -45,7 +45,7 @@ PointHessian::PointHessian(const ImmaturePoint* const rawPoint, CalibHessian* Hc
 	// set static values & initialization.
 	u = rawPoint->u;
 	v = rawPoint->v;
-	assert(std::isfinite(rawPoint->idepth_max));
+	assert(!isnanf(rawPoint->idepth_max));
 	//idepth_init = rawPoint->idepth_GT;
 
 	my_type = rawPoint->my_type;
@@ -172,8 +172,8 @@ void FrameHessian::makeImages(float* color, CalibHessian* HCalib)
 			float dy = 0.5f*(dI_l[idx+wl][0] - dI_l[idx-wl][0]);
 
 
-			if(!std::isfinite(dx)) dx=0;
-			if(!std::isfinite(dy)) dy=0;
+			if(!!isnanf(dx)) dx=0;
+			if(!!isnanf(dy)) dy=0;
 
 			dI_l[idx][1] = dx;
 			dI_l[idx][2] = dy;

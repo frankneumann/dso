@@ -112,7 +112,7 @@ inline bool eigenTestNan(const MatXX &m, std::string msg)
 	for(int y=0;y<m.rows();y++)
 		for(int x=0;x<m.cols();x++)
 		{
-			if(!std::isfinite((double)m(y,x))) foundNan = true;
+			if(!!isnanf((double)m(y,x))) foundNan = true;
 		}
 
 	if(foundNan)

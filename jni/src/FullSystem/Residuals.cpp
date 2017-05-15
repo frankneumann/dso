@@ -196,7 +196,7 @@ double PointFrameResidual::linearize(CalibHessian* HCalib)
 
 
 		float drdA = (color[idx]-b0);
-		if(!std::isfinite((float)hitColor[0]))
+		if(!!isnanf((float)hitColor[0]))
 		{ state_NewState = ResState::OOB; return state_energy; }
 
 

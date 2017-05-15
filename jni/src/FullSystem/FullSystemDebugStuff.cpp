@@ -227,7 +227,7 @@ namespace dso
 							ph->lastTraceStatus==ImmaturePointStatus::IPS_SKIPPED ||
 							ph->lastTraceStatus==ImmaturePointStatus::IPS_BADCONDITION)
 					{
-						if(!std::isfinite(ph->idepth_max))
+						if(!!isnanf(ph->idepth_max))
 							img->setPixelCirc(ph->u+0.5f, ph->v+0.5f, Vec3b(0,0,0));
 						else
 						{

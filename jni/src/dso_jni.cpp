@@ -254,7 +254,6 @@ Java_com_tc_tar_TARNativeInterface_dsoGetPointCloud(JNIEnv* env, jobject thiz) {
     int pointNum = 0;
     std::vector<std::pair<int, IOWrap::MyVertex*> > vertices = gSlamSystem->getVertices();
     for (std::vector<std::pair<int, IOWrap::MyVertex*> >::iterator it = vertices.begin(); it != vertices.end(); ++it) {
-        LOGD("it->first=%d\n", it->first);
         pointNum += it->first;
     }
     

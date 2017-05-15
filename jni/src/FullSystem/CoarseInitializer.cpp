@@ -403,7 +403,7 @@ Vec3f CoarseInitializer::calcResAndGS(
 			//float rlR = colorRef[point->u+dx + (point->v+dy) * wl][0];
 			float rlR = getInterpolatedElement31(colorRef, point->u+dx, point->v+dy, wl);
 
-			if(!std::isfinite(rlR) || !std::isfinite((float)hitColor[0]))
+			if(!!isnanf(rlR) || !!isnanf((float)hitColor[0]))
 			{
 				isGood = false;
 				break;

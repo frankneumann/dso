@@ -45,7 +45,7 @@ ImmaturePoint::ImmaturePoint(int u_, int v_, FrameHessian* host_, float type, Ca
 
 
 		color[idx] = ptc[0];
-		if(!std::isfinite(color[idx])) {energyTH=NAN; return;}
+		if(!!isnanf(color[idx])) {energyTH=NAN; return;}
 
 
 		gradH += ptc.tail<2>()  * ptc.tail<2>().transpose();
@@ -112,7 +112,7 @@ ImmaturePointStatus ImmaturePoint::traceOn(FrameHessian* frame,const Mat33f &hos
 	float uMax;
 	float vMax;
 	Vec3f ptpMax;
-	if(std::isfinite(idepth_max))
+	if(!isnanf(idepth_max))
 	{
 		ptpMax = pr + hostToFrame_Kt*idepth_max;
 		uMax = ptpMax[0] / ptpMax[2];
@@ -191,7 +191,7 @@ ImmaturePointStatus ImmaturePoint::traceOn(FrameHessian* frame,const Mat33f &hos
 	float b = (Vec2f(dy,-dx).transpose() * gradH * Vec2f(dy,-dx));
 	float errorInPixel = 0.2f + 0.2f * (a+b) / a;
 
-	if(errorInPixel*setting_trace_minImprovementFactor > dist && std::isfinite(idepth_max))
+	if(errorInPixel*setting_trace_minImprovementFactor > dist && !isnanf(idepth_max))
 	{
 		if(debugPrint)
 			printf("NO SIGNIFICANT IMPROVMENT (%f)!\n", errorInPixel);
@@ -240,7 +240,7 @@ ImmaturePointStatus ImmaturePoint::traceOn(FrameHessian* frame,const Mat33f &hos
 
 
 
-	if(!std::isfinite(dx) || !std::isfinite(dy))
+	if(!!isnanf(dx) || !!isnanf(dy))
 	{
 		//printf("COUGHT INF / NAN dxdy (%f %f)!\n", dx, dx);
 
@@ -266,7 +266,7 @@ ImmaturePointStatus ImmaturePoint::traceOn(FrameHessian* frame,const Mat33f &hos
 										(float)(pty+rotatetPattern[idx][1]),
 										wG[0]);
 
-			if(!std::isfinite(hitColor)) {energy+=1e5; continue;}
+			if(!!isnanf(hitColor)) {energy+=1e5; continue;}
 			float residual = hitColor - (float)(hostToFrame_affine[0] * color[idx] + hostToFrame_affine[1]);
 			float hw = fabs(residual) < setting_huberTH ? 1 : setting_huberTH / fabs(residual);
 			energy += hw *residual*residual*(2-hw);
@@ -312,7 +312,7 @@ ImmaturePointStatus ImmaturePoint::traceOn(FrameHessian* frame,const Mat33f &hos
 					(float)(bestU+rotatetPattern[idx][0]),
 					(float)(bestV+rotatetPattern[idx][1]),wG[0]);
 
-			if(!std::isfinite((float)hitColor[0])) {energy+=1e5; continue;}
+			if(!!isnanf((float)hitColor[0])) {energy+=1e5; continue;}
 			float residual = hitColor[0] - (hostToFrame_affine[0] * color[idx] + hostToFrame_affine[1]);
 			float dResdDist = dx*hitColor[1] + dy*hitColor[2];
 			float hw = fabs(residual) < setting_huberTH ? 1 : setting_huberTH / fabs(residual);
@@ -344,7 +344,7 @@ ImmaturePointStatus ImmaturePoint::traceOn(FrameHessian* frame,const Mat33f &hos
 			if(step < -0.5) step = -0.5;
 			else if(step > 0.5) step=0.5;
 
-			if(!std::isfinite(step)) step=0;
+			if(!!isnanf(step)) step=0;
 
 			uBak=bestU;
 			vBak=bestV;
@@ -399,7 +399,7 @@ ImmaturePointStatus ImmaturePoint::traceOn(FrameHessian* frame,const Mat33f &hos
 	if(idepth_min > idepth_max) std::swap<float>(idepth_min, idepth_max);
 
 
-	if(!std::isfinite(idepth_min) || !std::isfinite(idepth_max) || (idepth_max<0))
+	if(!!isnanf(idepth_min) || !!isnanf(idepth_max) || (idepth_max<0))
 	{
 		//printf("COUGHT INF / NAN minmax depth (%f %f)!\n", idepth_min, idepth_max);
 
@@ -454,7 +454,7 @@ float ImmaturePoint::calcResidual(
 			{return 1e10;}
 
 		Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
-		if(!std::isfinite((float)hitColor[0])) {return 1e10;}
+		if(!!isnanf((float)hitColor[0])) {return 1e10;}
 		//if(benchmarkSpecialOption==5) hitColor = (getInterpolatedElement13BiCub(tmpRes->target->I, Ku, Kv, wG[0]));
 
 		float residual = hitColor[0] - (affLL[0] * color[idx] + affLL[1]);
@@ -510,7 +510,7 @@ double ImmaturePoint::linearizeResidual(
 
 		Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
 
-		if(!std::isfinite((float)hitColor[0])) {tmpRes->state_NewState = ResState::OOB; return tmpRes->state_energy;}
+		if(!!isnanf((float)hitColor[0])) {tmpRes->state_NewState = ResState::OOB; return tmpRes->state_energy;}
 		float residual = hitColor[0] - (affLL[0] * color[idx] + affLL[1]);
 
 		float hw = fabsf(residual) < setting_huberTH ? 1 : setting_huberTH / fabsf(residual);

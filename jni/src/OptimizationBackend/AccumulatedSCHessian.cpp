@@ -56,7 +56,7 @@ void AccumulatedSCHessianSSE::addPoint(EFPoint* p, bool shiftPriorToZero, int ti
 	accHcc[tid].update(Hcd,Hcd,p->HdiF);
 	accbc[tid].update(Hcd, p->bdSumF * p->HdiF);
 
-	assert(std::isfinite((float)(p->HdiF)));
+	assert(!isnanf((float)(p->HdiF)));
 
 	int nFrames2 = nframes[tid]*nframes[tid];
 	for(EFResidual* r1 : p->residualsAll)

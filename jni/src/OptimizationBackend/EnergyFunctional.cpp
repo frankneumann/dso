@@ -310,7 +310,7 @@ void EnergyFunctional::resubstituteFPt(
 		}
 
 		p->data->step = - b*p->HdiF;
-		assert(std::isfinite(p->data->step));
+		assert(!isnanf(p->data->step));
 	}
 }
 

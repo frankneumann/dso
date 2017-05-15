@@ -399,7 +399,7 @@ Vec4 FullSystem::trackNewCoarse(FrameHessian* fh)
 
 
 		// do we have a new winner?
-		if(trackingIsGood && std::isfinite((float)coarseTracker->lastResiduals[0]) && !(coarseTracker->lastResiduals[0] >=  achievedRes[0]))
+		if(trackingIsGood && !isnanf((float)coarseTracker->lastResiduals[0]) && !(coarseTracker->lastResiduals[0] >=  achievedRes[0]))
 		{
 			//printf("take over. minRes %f -> %f!\n", achievedRes[0], coarseTracker->lastResiduals[0]);
 			flowVecs = coarseTracker->lastFlowIndicators;
@@ -413,7 +413,7 @@ Vec4 FullSystem::trackNewCoarse(FrameHessian* fh)
 		{
 			for(int i=0;i<5;i++)
 			{
-				if(!std::isfinite((float)achievedRes[i]) || achievedRes[i] > coarseTracker->lastResiduals[i])	// take over if achievedRes is either bigger or NAN.
+				if(!!isnanf((float)achievedRes[i]) || achievedRes[i] > coarseTracker->lastResiduals[i])	// take over if achievedRes is either bigger or NAN.
 					achievedRes[i] = coarseTracker->lastResiduals[i];
 			}
 		}
@@ -584,7 +584,7 @@ void FullSystem::activatePointsMT()
 			ph->idxInImmaturePoints = i;
 
 			// delete points that have never been traced successfully, or that are outlier on the last trace.
-			if(!std::isfinite(ph->idepth_max) || ph->lastTraceStatus == IPS_OUTLIER)
+			if(!!isnanf(ph->idepth_max) || ph->lastTraceStatus == IPS_OUTLIER)
 			{
 //				immature_invalid_deleted++;
 				// remove point.
@@ -865,7 +865,7 @@ void FullSystem::addActiveFrame( ImageAndExposure* image, int id )
 
 
 		Vec4 tres = trackNewCoarse(fh);
-		if(!std::isfinite((double)tres[0]) || !std::isfinite((double)tres[1]) || !std::isfinite((double)tres[2]) || !std::isfinite((double)tres[3]))
+		if(!!isnanf((double)tres[0]) || !!isnanf((double)tres[1]) || !!isnanf((double)tres[2]) || !!isnanf((double)tres[3]))
         {
             printf("Initial Tracking failed: LOST!\n");
 			isLost=true;
@@ -1246,13 +1246,13 @@ void FullSystem::initializeFromInitializer(FrameHessian* newFrame)
 		Pnt* point = coarseInitializer->points[0]+i;
 		ImmaturePoint* pt = new ImmaturePoint(point->u+0.5f,point->v+0.5f,firstFrame,point->my_type, &Hcalib);
 
-		if(!std::isfinite(pt->energyTH)) { delete pt; continue; }
+		if(!!isnanf(pt->energyTH)) { delete pt; continue; }
 
 
 		pt->idepth_max=pt->idepth_min=1;
 		PointHessian* ph = new PointHessian(pt, &Hcalib);
 		delete pt;
-		if(!std::isfinite(ph->energyTH)) {delete ph; continue;}
+		if(!!isnanf(ph->energyTH)) {delete ph; continue;}
 
 		ph->setIdepthScaled(point->iR*rescaleFactor);
 		ph->setIdepthZero(ph->idepth);
@@ -1309,7 +1309,7 @@ void FullSystem::makeNewTraces(FrameHessian* newFrame, float* gtDepth)
 		if(selectionMap[i]==0) continue;
 
 		ImmaturePoint* impt = new ImmaturePoint(x,y,newFrame, selectionMap[i], &Hcalib);
-		if(!std::isfinite(impt->energyTH)) delete impt;
+		if(!!isnanf(impt->energyTH)) delete impt;
 		else newFrame->immaturePoints.push_back(impt);
 
 	}

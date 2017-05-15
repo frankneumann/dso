@@ -479,7 +479,7 @@ float FullSystem::optimize(int mnumOptIts)
 		previousX = ef->lastX;
 
 
-		if(std::isfinite(incDirChange) && (setting_solverMode & SOLVER_STEPMOMENTUM))
+		if(!isnanf(incDirChange) && (setting_solverMode & SOLVER_STEPMOMENTUM))
 		{
 			float newStepsize = exp(incDirChange*1.4);
 			if(incDirChange<0 && stepsize>1) stepsize=1;
@@ -565,7 +565,7 @@ float FullSystem::optimize(int mnumOptIts)
 
 
 
-	if(!std::isfinite((double)lastEnergy[0]) || !std::isfinite((double)lastEnergy[1]) || !std::isfinite((double)lastEnergy[2]))
+	if(!!isnanf((double)lastEnergy[0]) || !!isnanf((double)lastEnergy[1]) || !!isnanf((double)lastEnergy[2]))
     {
         printf("KF Tracking failed: LOST!\n");
 		isLost=true;

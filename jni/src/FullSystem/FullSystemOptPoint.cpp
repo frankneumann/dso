@@ -85,7 +85,7 @@ PointHessian* FullSystem::optimizeImmaturePoint(
 		residuals[i].state_energy = residuals[i].state_NewEnergy;
 	}
 
-	if(!std::isfinite(lastEnergy) || lastHdd < setting_minIdepthH_act)
+	if(!!isnanf(lastEnergy) || lastHdd < setting_minIdepthH_act)
 	{
 		if(print)
 			printf("OptPoint: Not well-constrained (%d res, H=%.1f). E=%f. SKIP!\n",
@@ -108,7 +108,7 @@ PointHessian* FullSystem::optimizeImmaturePoint(
 		for(int i=0;i<nres;i++)
 			newEnergy += point->linearizeResidual(&Hcalib, 1, residuals+i,newHdd, newbd, newIdepth);
 
-		if(!std::isfinite(lastEnergy) || newHdd < setting_minIdepthH_act)
+		if(!!isnanf(lastEnergy) || newHdd < setting_minIdepthH_act)
 		{
 			if(print) printf("OptPoint: Not well-constrained (%d res, H=%.1f). E=%f. SKIP!\n",
 					nres,
@@ -147,7 +147,7 @@ PointHessian* FullSystem::optimizeImmaturePoint(
 			break;
 	}
 
-	if(!std::isfinite(currentIdepth))
+	if(!!isnanf(currentIdepth))
 	{
 		printf("MAJOR ERROR! point idepth is nan after initialization (%f).\n", currentIdepth);
 		return (PointHessian*)((long)(-1));		// yeah I'm like 99% sure this is OK on 32bit systems.
@@ -167,7 +167,7 @@ PointHessian* FullSystem::optimizeImmaturePoint(
 
 
 	PointHessian* p = new PointHessian(point, &Hcalib);
-	if(!std::isfinite(p->energyTH)) {delete p; return (PointHessian*)((long)(-1));}
+	if(!!isnanf(p->energyTH)) {delete p; return (PointHessian*)((long)(-1));}
 
 	p->lastResiduals[0].first = 0;
 	p->lastResiduals[0].second = ResState::OOB;

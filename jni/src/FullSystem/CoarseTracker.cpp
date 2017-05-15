@@ -269,7 +269,7 @@ void CoarseTracker::makeCoarseDepthL0(std::vector<FrameHessian*> frameHessians)
 
 
 
-					if(!std::isfinite(lpc_color[lpc_n]) || !(idepthl[i]>0))
+					if(!!isnanf(lpc_color[lpc_n]) || !(idepthl[i]>0))
 					{
 						idepthl[i] = -1;
 						continue;	// just skip if something is wrong.
@@ -445,7 +445,7 @@ Vec6 CoarseTracker::calcRes(int lvl, const SE3 &refToNew, AffLight aff_g2l, floa
 
 		float refColor = lpc_color[i];
         Vec3f hitColor = getInterpolatedElement33(dINewl, Ku, Kv, wl);
-        if(!std::isfinite((float)hitColor[0])) continue;
+        if(!!isnanf((float)hitColor[0])) continue;
         float residual = hitColor[0] - (float)(affLL[0] * refColor + affLL[1]);
         float hw = fabs(residual) < setting_huberTH ? 1 : setting_huberTH / fabs(residual);
 
@@ -630,7 +630,7 @@ bool CoarseTracker::trackNewestCoarse(
 			incScaled.segment<1>(6) *= SCALE_A;
 			incScaled.segment<1>(7) *= SCALE_B;
 
-            if(!std::isfinite(incScaled.sum())) incScaled.setZero();
+            if(!!isnanf(incScaled.sum())) incScaled.setZero();
 
 			SE3 refToNew_new = SE3::exp((Vec6)(incScaled.head<6>())) * refToNew_current;
 			AffLight aff_g2l_new = aff_g2l_current;
