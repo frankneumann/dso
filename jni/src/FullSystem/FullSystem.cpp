@@ -363,7 +363,7 @@ Vec4 FullSystem::trackNewCoarse(FrameHessian* fh)
 	// If on a coarse level, tracking is WORSE than achievedRes, we will not continue to save time.
 
 #ifdef ANDROID  // aarontang add
-    Vec5 achievedRes = Vec5::Constant(999999.99);   // aarontang change: NAN -> 999999.99: DO NOT compare NAN
+    Vec5 achievedRes = Vec5::Constant(INFINITY);   // aarontang change: NAN -> INFINITY: DO NOT compare NAN
 #else
     Vec5 achievedRes = Vec5::Constant(NAN);
 #endif

@@ -3,7 +3,7 @@ include $(CLEAR_VARS)
 
 ROOT := /data/projects/andorid_ndk
 
-LOCAL_CFLAGS += -std=c++11 -Wno-deprecated-declarations -DHAS_ZIPLIB=0 -DANDROID
+LOCAL_CFLAGS += -std=c++11 -Wno-deprecated-declarations -DHAS_ZIPLIB=0 -DANDROID -DEIGEN_INITIALIZE_MATRICES_BY_ZERO
 LOCAL_CPPFLAGS += -std=c++11 -O3
 LOCAL_MODULE := DSO
 LOCAL_ARM_MODE := arm

@@ -44,6 +44,7 @@ public:
     int getKeyframeCount();
     MinimalImageB3* cloneVideoImage();
     MinimalImageB3* cloneKeyframeImage();
+    std::vector<std::pair<int, MyVertex*> > getVertices();
     
 
 private:

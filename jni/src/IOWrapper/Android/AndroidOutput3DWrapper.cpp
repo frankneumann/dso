@@ -63,11 +63,6 @@ void AndroidOutput3DWrapper::publishCamPose(FrameShell* frame, CalibHessian* HCa
     boost::unique_lock<boost::mutex> lk(model3DMutex_);
     currentCam_->setFromF(frame, HCalib);
 
-    float fx = HCalib->fxl();
-	float fy = HCalib->fyl();
-	float cx = HCalib->cxl();
-	float cy = HCalib->cyl();
-
 #if 0
     std::ostringstream out;
     out << frame->camToWorld.matrix();
@@ -138,6 +133,34 @@ MinimalImageB3* AndroidOutput3DWrapper::cloneKeyframeImage()
 {
     boost::unique_lock<boost::mutex> lk(openImagesMutex_);
     return internalKFImg_->getClone();
+}
+
+std::vector<std::pair<int, MyVertex*> > AndroidOutput3DWrapper::getVertices()
+{
+    boost::unique_lock<boost::mutex> lk(model3DMutex_);
+
+    std::vector<std::pair<int, MyVertex*> > result;
+    double settings_scaledVarTH = 0.001;
+    double settings_absVarTH = 0.001;
+    int settings_pointCloudMode = 1;
+    double settings_minRelBS = 0.1;
+    int settings_sparsity = 1;
+    
+	int refreshed=0;
+	for(KeyFrameDisplay* fh : keyframes_) {
+		refreshed =+ (int)(fh->refreshPC(refreshed < 10, settings_scaledVarTH, settings_absVarTH,
+				settings_pointCloudMode, settings_minRelBS, settings_sparsity, true));
+
+		MyVertex* tmpVertices = NULL;
+		int tmpVerticesNum = 0;
+		tmpVerticesNum = fh->getVertices(tmpVertices);
+		//LOGD("fh=%p, tmpVertices=%p, tmpVerticesNum=%d\n", fh, tmpVertices, tmpVerticesNum);
+		if (tmpVertices == NULL || tmpVerticesNum == 0)
+		    continue;
+		result.push_back(std::make_pair(tmpVerticesNum, tmpVertices));
+	}
+	
+	return result;
 }
 
 }

@@ -59,6 +59,9 @@ KeyFrameDisplay::KeyFrameDisplay()
 
 	numGLBufferPoints=0;
 	bufferValid = false;
+
+	vertices = NULL;
+	verticesNum = 0;
 }
 void KeyFrameDisplay::setFromF(FrameShell* frame, CalibHessian* HCalib)
 {
@@ -164,9 +167,11 @@ KeyFrameDisplay::~KeyFrameDisplay()
 {
 	if(originalInputSparse != 0)
 		delete[] originalInputSparse;
+    if (vertices)
+        delete[] vertices;
 }
 
-bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH, int mode, float minBS, int sparsity)
+bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH, int mode, float minBS, int sparsity, bool worldPos)
 {
 	if(canRefresh)
 	{
@@ -206,11 +211,11 @@ bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH, in
 		 * my_displayMode==3 - nothing
 		 */
 
-		if(my_displayMode==1 && originalInputSparse[i].status != 1 && originalInputSparse[i].status!= 2) continue;
-		if(my_displayMode==2 && originalInputSparse[i].status != 1) continue;
-		if(my_displayMode>2) continue;
+        if(my_displayMode==1 && originalInputSparse[i].status != 1 && originalInputSparse[i].status!= 2) continue;
+        if(my_displayMode==2 && originalInputSparse[i].status != 1) continue;
+        if(my_displayMode>2) continue;
 
-		if(originalInputSparse[i].idpeth < 0) continue;
+        if(originalInputSparse[i].idpeth < 0) continue;
 
 
 		float depth = 1.0f / originalInputSparse[i].idpeth;
@@ -286,13 +291,36 @@ bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH, in
 			assert(vertexBufferNumPoints <= numSparsePoints*patternNum);
 		}
 	}
-
 	if(vertexBufferNumPoints==0)
 	{
 		delete[] tmpColorBuffer;
 		delete[] tmpVertexBuffer;
 		return true;
 	}
+    
+    if (vertices != NULL) {
+	    delete[] vertices;
+	    vertices = NULL;
+	    verticesNum = 0;
+	}
+	vertices = new MyVertex[numSparsePoints*patternNum];
+	for (int i = 0; i < vertexBufferNumPoints; ++i) {
+	    if (worldPos) {
+	        Sophus::Vector3d pt = camToWorld * (Sophus::Vector3d(tmpVertexBuffer[i][0], tmpVertexBuffer[i][1], tmpVertexBuffer[i][2]));
+	        vertices[i].point[0] = pt[0];
+    	    vertices[i].point[1] = pt[1];
+    	    vertices[i].point[2] = pt[2];
+	    } else {
+    	    vertices[i].point[0] = tmpVertexBuffer[i][0];
+    	    vertices[i].point[1] = tmpVertexBuffer[i][1];
+    	    vertices[i].point[2] = tmpVertexBuffer[i][2];
+	    }
+	    vertices[i].color[0] = tmpColorBuffer[i][0];
+	    vertices[i].color[1] = tmpColorBuffer[i][1];
+	    vertices[i].color[2] = tmpColorBuffer[i][2];
+	    vertices[i].color[3] = 100;
+	}
+	verticesNum = vertexBufferNumPoints;
 
 	numGLBufferGoodPoints = vertexBufferNumPoints;
 	if(numGLBufferGoodPoints > numGLBufferPoints)
@@ -303,11 +331,14 @@ bool KeyFrameDisplay::refreshPC(bool canRefresh, float scaledTH, float absTH, in
 	delete[] tmpColorBuffer;
 	delete[] tmpVertexBuffer;
 
-
 	return true;
 }
 
-
+int KeyFrameDisplay::getVertices(MyVertex*& pVertices) 
+{
+    pVertices = vertices;
+    return verticesNum;
+}
 
 void KeyFrameDisplay::drawCam(float lineWidth, float* color, float sizeFactor)
 {

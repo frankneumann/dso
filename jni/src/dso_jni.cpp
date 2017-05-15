@@ -7,9 +7,11 @@
 #include <stdio.h>
 #include <unistd.h>
 
+
 #include "IOWrapper/Output3DWrapper.h"
 #include "IOWrapper/ImageDisplay.h"
 #include "IOWrapper/Android/AndroidOutput3DWrapper.h"
+#include "IOWrapper/Android/KeyFrameDisplay.h"
 
 #include "util/settings.h"
 #include "util/globalFuncs.h"
@@ -151,6 +153,10 @@ public:
     MinimalImageB3* cloneKeyframeImage() {
         return outputWrapper_->cloneKeyframeImage();
     }
+
+    std::vector<std::pair<int, IOWrap::MyVertex*> > getVertices() {
+        return outputWrapper_->getVertices();
+    }
     
 private:
     ImageFolderReader* reader_;
@@ -182,23 +188,25 @@ Java_com_tc_tar_TARNativeInterface_dsoInit(JNIEnv* env, jobject thiz, jstring ca
 JNIEXPORT void JNICALL
 Java_com_tc_tar_TARNativeInterface_dsoRelease(JNIEnv* env, jobject thiz) {
 	LOGD("dsoRelease\n");
+	if (gSlamSystem) {
+	    delete gSlamSystem;
+	    gSlamSystem = NULL;
+    }
 }
 
 JNIEXPORT int JNICALL
-Java_com_tc_tar_TARNativeInterface_dsoOnFrameByData(JNIEnv* env, jobject thiz, jint width, jint height, jbyteArray array, jint format) {
-	LOGD("dsoOnFrameByData\n");
-	unsigned char* yuv = (unsigned char*)env->GetByteArrayElements(array, 0);
-	gSlamSystem->onFrameByData(width, height, yuv);
-	env->ReleaseByteArrayElements(array, (jbyte*)yuv, 0);
+Java_com_tc_tar_TARNativeInterface_dsoOnFrameByData(JNIEnv* env, jobject thiz, jint width, jint height, jbyteArray frameData, jint format) {
+    unsigned char grayData[width * height] = {0};
+    env->GetByteArrayRegion(frameData, 0, width * height, (jbyte*)grayData);
+	gSlamSystem->onFrameByData(width, height, grayData);
+    env->DeleteLocalRef(frameData);
 
 	return 0;
 }
 
 JNIEXPORT int JNICALL
 Java_com_tc_tar_TARNativeInterface_dsoOnFrameByPath(JNIEnv* env, jobject thiz, jstring path) {
-	LOGD("dsoOnFrameByPath\n");
 	const char *imgFile = env->GetStringUTFChars(path, 0);
-    LOGD("imgFile: %s\n", imgFile);
     gSlamSystem->onFrameByPath(imgFile);
 	env->ReleaseStringUTFChars(path, imgFile);
 
@@ -241,26 +249,62 @@ Java_com_tc_tar_TARNativeInterface_dsoGetCurrentPose(JNIEnv* env, jobject thiz) 
     return result;
 }
 
-JNIEXPORT jobjectArray JNICALL
-Java_com_tc_tar_TARNativeInterface_dsoGetAllKeyFrames(JNIEnv* env, jobject thiz) {
-    jclass classKeyFrame = env->FindClass("com/tc/tar/DSOKeyFrame");
-    std::list<jobject> objectList;
-    // TODO: set value
-
-    if (objectList.empty())
-        return NULL;
-
-    // Add to result
-    jobjectArray result = env->NewObjectArray(objectList.size(), classKeyFrame, NULL);
-    int i = 0;
-    for (std::list<jobject>::iterator it = objectList.begin(); it != objectList.end(); ++it) {
-        env->SetObjectArrayElement(result, i++, *it);
+JNIEXPORT jobject JNICALL
+Java_com_tc_tar_TARNativeInterface_dsoGetPointCloud(JNIEnv* env, jobject thiz) {
+    int pointNum = 0;
+    std::vector<std::pair<int, IOWrap::MyVertex*> > vertices = gSlamSystem->getVertices();
+    for (std::vector<std::pair<int, IOWrap::MyVertex*> >::iterator it = vertices.begin(); it != vertices.end(); ++it) {
+        LOGD("it->first=%d\n", it->first);
+        pointNum += it->first;
+    }
+    
+    jfloat* points = new jfloat[pointNum * 3];
+    jint* colors = new jint[pointNum];
+    int points_offset = 0;
+    int colors_offset = 0;
+    for (std::vector<std::pair<int, IOWrap::MyVertex*> >::iterator it = vertices.begin(); it != vertices.end(); ++it) {
+        for (int i = 0; i < it->first; ++i) {
+            memcpy(points + points_offset, it->second[i].point, 3 * sizeof(float));
+            colors[colors_offset] = (it->second[i].color[3] << 24) + (it->second[i].color[0] << 16) + (it->second[i].color[1] << 8) + it->second[i].color[2];
+            points_offset += 3;
+            colors_offset++;
+        }
     }
 
+    jclass classKeyFrame = env->FindClass("com/tc/tar/DSOPointCloud");
+
+    // new DSOPointCloud object
+    jmethodID initMethodID = env->GetMethodID(classKeyFrame, "<init>", "()V");
+    assert (initMethodID != NULL);
+    jobject pointCloudObject = env->NewObject(classKeyFrame, initMethodID);
+    assert (pointCloudObject != NULL);
+
+    // set pointCount
+    jint pointCount = pointNum;
+    jfieldID pointCountFieldID = env->GetFieldID(classKeyFrame, "pointCount", "I");
+    assert (pointCountFieldID != NULL);
+    env->SetIntField(pointCloudObject, pointCountFieldID, pointCount);
+
+    // set points
+    jfloatArray pointsArray = env->NewFloatArray(pointNum * 3);
+    env->SetFloatArrayRegion(pointsArray, 0, pointNum * 3, points);
+    jfieldID pointsFieldID = env->GetFieldID(classKeyFrame, "worldPoints", "[F");
+    assert (pointsFieldID != NULL);
+    env->SetObjectField(pointCloudObject, pointsFieldID, pointsArray);
+
+    // set colors
+    jintArray colorsArray = env->NewIntArray(pointNum);
+    env->SetIntArrayRegion(colorsArray, 0, pointNum, colors);
+    jfieldID colorsFieldID = env->GetFieldID(classKeyFrame, "colors", "[I");
+    assert (colorsFieldID != NULL);
+    env->SetObjectField(pointCloudObject, colorsFieldID, colorsArray);
+
     // Release
-    // TODO: release ref
+    env->DeleteLocalRef(classKeyFrame);
+    delete points;
+    delete colors;
     
-    return result;
+    return pointCloudObject;
 }
 
 JNIEXPORT jint JNICALL

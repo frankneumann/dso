@@ -77,7 +77,8 @@ public:
 	void setFromF(FrameShell* fs, CalibHessian* HCalib);
 
 	// copies & filters internal data to GL buffer for rendering. if nothing to do: does nothing.
-	bool refreshPC(bool canRefresh, float scaledTH, float absTH, int mode, float minBS, int sparsity);
+	bool refreshPC(bool canRefresh, float scaledTH, float absTH, int mode, float minBS, int sparsity, bool worldPos);
+	int getVertices(MyVertex*& pVertices);
 
 	// renders cam & pointcloud.
 	void drawCam(float lineWidth = 1, float* color = 0, float sizeFactor=1);
@@ -113,6 +114,9 @@ private:
 	bool bufferValid;
 	int numGLBufferPoints;
 	int numGLBufferGoodPoints;
+
+	MyVertex * vertices;
+	int verticesNum;
 };
 
 }
